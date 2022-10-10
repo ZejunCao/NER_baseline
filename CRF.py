@@ -157,8 +157,9 @@ print(X_train[0][1])
 # algorithm：lbfgs法求解该最优化问题，c1：L1正则系数，c2：L2正则系数，max_iterations：迭代次数，verbose：是否显示训练信息
 crf_model = sklearn_crfsuite.CRF(algorithm='lbfgs', c1=0.1, c2=0.1, max_iterations=100,
                                  all_possible_transitions=True, verbose=True)
-# 由于sklearn版本的问题会报错：AttributeError: 'CRF' object has no attribute 'keep_tempfiles'
-# 使用异常处理不会影响训练效果
+# 若sklearn版本大于等于0.24会报错：AttributeError: 'CRF' object has no attribute 'keep_tempfiles'
+# 可降低版本 pip install -U 'scikit-learn<0.24'
+# 或使用异常处理，不会影响训练效果
 try:
     crf_model.fit(X_train, y_train)
 except:
@@ -181,5 +182,6 @@ print(metrics.flat_classification_report(
     y_dev, y_pred, labels=sorted_labels, digits=3
 ))
 
+# 查看转移概率和发射概率
 # print('CRF转移概率：', crf_model.transition_features_)
 # print('CRF发射概率：', crf_model.state_features_)
