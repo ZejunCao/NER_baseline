@@ -14,4 +14,5 @@ CRF代码参考：https://sklearn-crfsuite.readthedocs.io/en/latest/tutorial.htm
 
 ## 拓展讲解
 CRF代码详细介绍可见博客：https://blog.csdn.net/qq_41496421/article/details/126765444?spm=1001.2014.3001.5501
+
 HMM代码详细介绍可见博客：https://blog.csdn.net/qq_41496421/article/details/127623738?spm=1001.2014.3001.5502
