@@ -1,5 +1,6 @@
 ## 任务
 CRF.py：使用sklearn_crfsuite的CRF工具做中文命名实体识别(NER)， 获取中文原始数据集， 处理成sklearn_crfsuite所需要的格式，代码有详细注释，若有遗漏或不详细可issues补充。
+
 HMM.py：使用HMM做中文命名实体识别(NER)， 获取中文原始数据集，对其进行训练、验证、预测，代码有详细注释，若有遗漏或不详细可issues补充。
 
 ## 数据集
