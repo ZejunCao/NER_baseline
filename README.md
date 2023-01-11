@@ -3,6 +3,8 @@ CRF.py：使用sklearn_crfsuite的CRF工具做中文命名实体识别(NER)， �
 
 HMM.py：使用HMM做中文命名实体识别(NER)， 获取中文原始数据集，对其进行训练、验证、预测，代码有详细注释，若有遗漏或不详细可issues补充。
 
+BiLSTM_CRF：更新中
+
 ## 数据集
 注：本数据是在清华大学开源的文本分类数据集THUCTC基础上，选出部分数据进行细粒度命名实体标注，原数据来源于Sina News RSS.
 

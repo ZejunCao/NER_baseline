@@ -1,8 +1,11 @@
-#! /usr/bin/env python
-# coding:utf-8
-# Author: Cao Zejun
-# create date: 2022-10-06 20:27
-# description: 单个CRF做NER
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# @Author  : Cao Zejun
+# @Time    : 2022/10/6 20:27
+# @File    : CRF.py
+# @Software: PyCharm
+# @description: 使用单个CRF进行命名实体识别NER
+
 # 注：本数据是在清华大学开源的文本分类数据集THUCTC基础上，选出部分数据进行细粒度命名实体标注，原数据来源于Sina News RSS.
 # 数据集详情介绍：https://www.cluebenchmarks.com/introduce.html
 # 数据集下载链接：https://storage.googleapis.com/cluebenchmark/tasks/cluener_public.zip

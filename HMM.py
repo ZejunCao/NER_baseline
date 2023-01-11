@@ -1,12 +1,14 @@
-#! /usr/bin/env python
-# -*-coding:utf-8-*-
-# Author: Cao Zejun
-# create date: 2022-10-05 15:31
-# description: 使用HMM进行命名实体识别NER
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# @Author  : Cao Zejun
+# @Time    : 2022/10/5 15:31
+# @File    : HMM.py
+# @Software: PyCharm
+# @description: 使用HMM进行命名实体识别NER
+
 # 注：本数据是在清华大学开源的文本分类数据集THUCTC基础上，选出部分数据进行细粒度命名实体标注，原数据来源于Sina News RSS.
 # 数据集详情介绍：https://www.cluebenchmarks.com/introduce.html
 # 数据集下载链接：https://storage.googleapis.com/cluebenchmark/tasks/cluener_public.zip
-# 代码参考：https://sklearn-crfsuite.readthedocs.io/en/latest/tutorial.html
 
 import json
 import numpy as np
@@ -16,8 +18,9 @@ from sklearn_crfsuite import metrics
 
 # 读取json数据
 json_data = []
-for line in open('./data/cluener_public/train.json', 'r'):
-    json_data.append(json.loads(line))
+with open('./data/cluener_public/train.json', 'r', encoding='utf-8') as fp:
+    for line in fp:
+        json_data.append(json.loads(line))
 
 '''
 json_data[0]数据为该格式：
@@ -47,12 +50,11 @@ for n_class in n_classes:
     count += 1
 
 
-# 将数据处理成CRF库输入格式
 def data_process(path):
     # 读取每一条json数据放入列表中
     # 由于该json文件含多个数据，不能直接json.loads读取，需使用for循环逐条读取
     json_data = []
-    with open(path, 'r') as fp:
+    with open(path, 'r', encoding='utf-8') as fp:
         for line in fp:
             json_data.append(json.loads(line))
 
