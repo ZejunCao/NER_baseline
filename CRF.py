@@ -23,7 +23,8 @@
 
 import json
 import sklearn_crfsuite
-from sklearn_crfsuite import metrics
+from sklearn import metrics
+from itertools import chain
 
 
 # 将数据处理成CRF库输入格式
@@ -31,7 +32,7 @@ def data_process(path):
     # 读取每一条json数据放入列表中
     # 由于该json文件含多个数据，不能直接json.loads读取，需使用for循环逐条读取
     json_data = []
-    with open(path, 'r') as fp:
+    with open(path, 'r', encoding='utf-8') as fp:
         for line in fp:
             json_data.append(json.loads(line))
 
@@ -158,7 +159,7 @@ y_dev = [sent2labels(s[1]) for s in valid]
 print(X_train[0][1])
 
 # algorithm：lbfgs法求解该最优化问题，c1：L1正则系数，c2：L2正则系数，max_iterations：迭代次数，verbose：是否显示训练信息
-crf_model = sklearn_crfsuite.CRF(algorithm='lbfgs', c1=0.1, c2=0.1, max_iterations=100,
+crf_model = sklearn_crfsuite.CRF(algorithm='lbfgs', c1=0.1, c2=0.1, max_iterations=50,
                                  all_possible_transitions=True, verbose=True)
 # 若sklearn版本大于等于0.24会报错：AttributeError: 'CRF' object has no attribute 'keep_tempfiles'
 # 可降低版本 pip install -U 'scikit-learn<0.24'
@@ -172,16 +173,20 @@ labels = list(crf_model.classes_)
 # 由于大部分标签都是'O'，故不去关注'O'标签的预测
 labels.remove("O")
 y_pred = crf_model.predict(X_dev)
+
+y_dev = list(chain.from_iterable(y_dev))
+y_pred = list(chain.from_iterable(y_pred))
+
 # 计算F1分数，average可选'micro'，'macro'，'weighted'，处理多类别F1分数的不同计算方法
 # 此metrics为sklearn_crfsuite.metrics，但必须引入from sklearn_crfsuite import metrics
 # 也可使用sklearn.metrics.f1_score(y_dev, y_pred, average='weighted', labels=labels)),但要求y_dev和y_pred是一维列表
-print('weighted F1 score:', metrics.flat_f1_score(y_dev, y_pred,
+print('weighted F1 score:', metrics.f1_score(y_dev, y_pred,
                       average='weighted', labels=labels))
 
 # 排好标签顺序输入，否则默认按标签出现顺序进行排列
 sorted_labels = sorted(labels, key=lambda name: (name[1:], name[0]))
 # 打印详细分数报告，包括precision(精确率)，recall(召回率)，f1-score(f1分数)，support(个数)，digits=3代表保留3位小数
-print(metrics.flat_classification_report(
+print(metrics.classification_report(
     y_dev, y_pred, labels=sorted_labels, digits=3
 ))
 
