@@ -10,23 +10,25 @@
 # 数据集详情介绍：https://www.cluebenchmarks.com/introduce.html
 # 数据集下载链接：https://storage.googleapis.com/cluebenchmark/tasks/cluener_public.zip
 # 代码参考：https://pytorch.org/tutorials/beginner/nlp/advanced_tutorial.html
+
 import time
-
+import datetime
 from tqdm import tqdm
-
 import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader
-import numpy as np
+from sklearn import metrics
+from itertools import chain
 
-from data_processor import Mydataset
-from model import BiLSTM_CRF
+from BiLSTM_CRF.data_processor import Mydataset
+from BiLSTM_CRF.model import BiLSTM_CRF
 
-torch.manual_seed(1)
+# 设置torch随机种子
+torch.manual_seed(3407)
 
 embedding_size = 128
-hidden_dim = 384
-epochs = 1
+hidden_dim = 768
+epochs = 50
 batch_size = 32
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -39,46 +41,64 @@ train_dataloader = DataLoader(train_dataset, batch_size=batch_size, num_workers=
                               collate_fn=train_dataset.collect_fn)
 valid_dataloader = DataLoader(valid_dataset, batch_size=batch_size, num_workers=0, pin_memory=True, shuffle=False,
                               collate_fn=train_dataset.collect_fn)
-model = BiLSTM_CRF(len(train_dataset.vocab), train_dataset.label_map, embedding_size, hidden_dim, device).to(device)
-optimizer = optim.SGD(model.parameters(), lr=0.01, weight_decay=1e-4)
+model = BiLSTM_CRF(train_dataset, embedding_size, hidden_dim, device).to(device)
+optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-4)
 
 def train():
-    for epoch in range(epochs):  # again, normally you would NOT do 300 epochs, it is toy data
-        losses = 0
-        step = 1
+    total_start = time.time()
+    for epoch in range(epochs):
         epoch_start = time.time()
-        for text, label, seq_len in train_dataloader:
+        for step, (text, label, seq_len) in enumerate(train_dataloader, start=1):
             start = time.time()
             text = text.to(device)
             label = label.to(device)
             seq_len = seq_len.to(device)
 
-            loss = model.neg_log_likelihood(text, label, seq_len)
-            model.zero_grad()
+            loss = model(text, label, seq_len)
             loss.backward()
             optimizer.step()
+            optimizer.zero_grad()
 
-            print(f'Epoch: [{epoch + 1}/{epochs}], '
-                  f'finished: {step * batch_size / len(train_dataset) * 100:<2.2f}%, '
-                  f'loss: {loss.item():<2.4f}, '
-                  f'time: {time.time() - start:<2.2f}s, '
-                  f'remaining time: {(len(train_dataset) / batch_size - step) / step * (time.time() - epoch_start):<.0f}s')
-            step += 1
+            print(f'Epoch: [{epoch + 1}/{epochs}],  '
+                  f'cur epoch finished: {step * batch_size / len(train_dataset) * 100:<2.2f}%,  '
+                  f'loss: {loss.item():<2.4f},  '
+                  f'time: {time.time() - start:<2.2f}s,  '
+                  f'cur epoch remaining time: {datetime.timedelta(seconds=int((len(train_dataloader) - step) / step * (time.time() - epoch_start)))}',
+                  f'total remaining time: {datetime.timedelta(seconds=int((len(train_dataloader) - step) * epochs / step * (time.time() - total_start)))}')
 
-            torch.save(model.state_dict(), './model.bin')
+            torch.save(model.state_dict(), './model1.bin')
+        evaluate()
 
 def evaluate():
-    model.load_state_dict(torch.load('./model.bin'))
+    # model.load_state_dict(torch.load('./model1.bin'))
     all_label = []
     all_pred = []
-    for text, label, seq_len in valid_dataloader:
+    model.eval()
+    model.state = 'eval'
+    for text, label, seq_len in tqdm(valid_dataloader, desc='eval: '):
         text = text.to(device)
         seq_len = seq_len.to(device)
-        a = label[0][:seq_len[0]]
-        all_label.extend([l for i, batch in enumerate(label) for l in batch[:seq_len[i]].tolist()])
-        batch_tag = model.get_labels(text, seq_len)
-        print(np.mean(batch_tag))
-        all_label.extend([l[:i].items() for i, l in enumerate(label)])
-        all_pred.extend(batch_tag)
+        batch_tag = model(text, label, seq_len)
+        all_label.extend([[train_dataset.label_map_inv[t] for t in l[:seq_len[i]].tolist()] for i, l in enumerate(label)])
+        all_pred.extend([[train_dataset.label_map_inv[t] for t in l] for l in batch_tag])
 
-evaluate()
+    all_label = list(chain.from_iterable(all_label))
+    all_pred = list(chain.from_iterable(all_pred))
+    sort_labels = [k for k in train_dataset.label_map.keys()]
+    print(metrics.classification_report(
+        all_label, all_pred, labels=sort_labels[:-3], digits=3
+    ))
+
+train()
+
+def date_norm(second: int) -> str:
+    """
+    将time.time()做差得到的秒数转化成时分秒
+    :param second: int 秒数
+    :return: str 时分秒
+    """
+    if second < 60:
+        return str(second)
+    else:
+        second /= 60
+        return date_norm(second)

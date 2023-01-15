@@ -147,7 +147,6 @@ class Mydataset(Dataset):
             t = [self.vocab.get(t, self.vocab['UNK']) for t in text]
             l = [self.label_map[l] for l in label]
             self.examples.append([t, l])
-        self.a = 0
 
     def __getitem__(self, item):
         return self.examples[item]
@@ -164,8 +163,8 @@ class Mydataset(Dataset):
         text = [t + [self.vocab['PAD']] * (max_len - len(t)) for t in text]
         label = [l + [self.label_map['O']] * (max_len - len(l)) for l in label]
 
-        text = torch.LongTensor(text)
-        label = torch.LongTensor(label)
-        seq_len = torch.LongTensor(seq_len)
+        text = torch.tensor(text, dtype=torch.long)
+        label = torch.tensor(label, dtype=torch.long)
+        seq_len = torch.tensor(seq_len, dtype=torch.long)
 
         return text, label, seq_len
