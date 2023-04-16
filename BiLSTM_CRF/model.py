@@ -25,12 +25,12 @@ def log_sum_exp(vec):
 
 
 class BiLSTM_CRF(nn.Module):
-    def __init__(self, dataset, embedding_dim, hidden_dim, device='cpu'):
+    def __init__(self, embedding_dim, hidden_dim, vocab, label_map, device='cpu'):
         super(BiLSTM_CRF, self).__init__()
         self.embedding_dim = embedding_dim  # 词向量维度
         self.hidden_dim = hidden_dim  # 隐层维度
-        self.vocab_size = len(dataset.vocab)  # 词表大小
-        self.tagset_size = len(dataset.label_map)  # 标签个数
+        self.vocab_size = len(vocab)  # 词表大小
+        self.tagset_size = len(label_map)  # 标签个数
         self.device = device
         # 记录状态，'train'、'eval'、'pred'对应三种不同的操作
         self.state = 'train'  # 'train'、'eval'、'pred'
@@ -40,9 +40,9 @@ class BiLSTM_CRF(nn.Module):
         self.lstm = nn.LSTM(embedding_dim, hidden_dim // 2, num_layers=2, bidirectional=True, batch_first=True)
 
         # BiLSTM 输出转化为各个标签的概率，此为CRF的发射概率
-        self.hidden2tag = nn.Linear(hidden_dim, self.tagset_size, bias=False)
+        self.hidden2tag = nn.Linear(hidden_dim, self.tagset_size, bias=True)
         # 初始化CRF类
-        self.crf = CRF(dataset, device)
+        self.crf = CRF(label_map, device)
         self.dropout = nn.Dropout(p=0.5, inplace=True)
         self.layer_norm = nn.LayerNorm(self.hidden_dim)
 
@@ -73,25 +73,27 @@ class BiLSTM_CRF(nn.Module):
         lstm_feats = self.hidden2tag(seqence_output)
         return lstm_feats
 
-    def forward(self, sentence, tags, seq_len):
+    def forward(self, sentence, seq_len, tags=''):
         # 输入序列经过BiLSTM得到发射概率
         feats = self._get_lstm_features(sentence, seq_len)
         # 根据 state 判断哪种状态，从而选择计算损失还是维特比得到预测序列
         if self.state == 'train':
             loss = self.crf.neg_log_likelihood(feats, tags, seq_len)
             return loss
-        else:
+        elif self.state == 'eval':
             all_tag = []
             for i, feat in enumerate(feats):
                 # path_score, best_path = self.crf._viterbi_decode(feat[:seq_len[i]])
                 all_tag.append(self.crf._viterbi_decode(feat[:seq_len[i]])[1])
             return all_tag
+        else:
+            return self.crf._viterbi_decode(feats[0])[1]
 
 
 class CRF:
-    def __init__(self, dataset, device='cpu'):
-        self.label_map = dataset.label_map
-        self.label_map_inv = dataset.label_map_inv
+    def __init__(self, label_map, device='cpu'):
+        self.label_map = label_map
+        self.label_map_inv = {v: k for k, v in label_map.items()}
         self.tagset_size = len(self.label_map)
         self.device = device
 

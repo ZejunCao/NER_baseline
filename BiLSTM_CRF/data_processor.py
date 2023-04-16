@@ -14,7 +14,7 @@ import torch
 from torch.utils.data import Dataset
 
 
-def get_label_map(data_path):
+def get_label_map(data_path=''):
     # 标签字典保存路径
     label_map_path = '../data/cluener_public/label_map.json'
     # 第一次运行需要遍历训练集获取到标签字典，并存储成json文件保存，第二次运行即可直接载入json文件
@@ -68,7 +68,7 @@ def get_label_map(data_path):
     label_map_inv = {v: k for k, v in label_map.items()}
     return label_map, label_map_inv
 
-def get_vocab(data_path):
+def get_vocab(data_path=''):
     # 词表保存路径
     vocab_path = '../data/cluener_public/vocab.pkl'
     # 第一次运行需要遍历训练集获取到标签字典，并存储成json文件保存，第二次运行即可直接载入json文件

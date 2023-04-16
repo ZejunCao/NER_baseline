@@ -46,7 +46,7 @@ train_dataloader = DataLoader(train_dataset, batch_size=batch_size, num_workers=
                               collate_fn=train_dataset.collect_fn)
 valid_dataloader = DataLoader(valid_dataset, batch_size=batch_size, num_workers=0, pin_memory=False, shuffle=False,
                               collate_fn=valid_dataset.collect_fn)
-model = BiLSTM_CRF(train_dataset, embedding_size, hidden_dim, device).to(device)
+model = BiLSTM_CRF(embedding_size, hidden_dim, train_dataset.vocab, train_dataset.label_map, device).to(device)
 optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-4)
 
 def train():
@@ -62,7 +62,7 @@ def train():
             label = label.to(device)
             seq_len = seq_len.to(device)
 
-            loss = model(text, label, seq_len)
+            loss = model(text, seq_len, label)
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
@@ -92,7 +92,7 @@ def evaluate():
         for text, label, seq_len in tqdm(valid_dataloader, desc='eval: '):
             text = text.to(device)
             seq_len = seq_len.to(device)
-            batch_tag = model(text, label, seq_len)
+            batch_tag = model(text, seq_len, label)
             all_label.extend([[train_dataset.label_map_inv[t] for t in l[:seq_len[i]].tolist()] for i, l in enumerate(label)])
             all_pred.extend([[train_dataset.label_map_inv[t] for t in l] for l in batch_tag])
 
