@@ -90,8 +90,9 @@ class BiLSTM_CRF(nn.Module):
             return self.crf._viterbi_decode(feats[0])[1]
 
 
-class CRF:
+class CRF(nn.Module):
     def __init__(self, label_map, device='cpu'):
+        super(CRF, self).__init__()
         self.label_map = label_map
         self.label_map_inv = {v: k for k, v in label_map.items()}
         self.tagset_size = len(self.label_map)
@@ -99,7 +100,7 @@ class CRF:
 
         # 转移概率矩阵
         self.transitions = nn.Parameter(
-            torch.randn(self.tagset_size, self.tagset_size)).to(self.device)
+            torch.randn(self.tagset_size, self.tagset_size))
 
         # 增加开始和结束标志，并手动干预转移概率
         self.START_TAG = "<START>"
@@ -186,22 +187,28 @@ class CRF:
         forward_var = init_vvars
         # 传入的就是单个序列,在每个时间步上遍历
         for feat in feats:
-            bptrs_t = []  # holds the backpointers for this step
-            viterbivars_t = []  # holds the viterbi variables for this step
+            # bptrs_t = []
+            # viterbivars_t = []
+            # # 一个标签一个标签去计算处理
+            # for next_tag in range(self.tagset_size):
+            #     # 前一时间步分数 + 转移到第 next_tag 个标签的概率
+            #     next_tag_var = forward_var + self.transitions[next_tag]
+            #     # 得到最大分数所对应的索引,即前一时间步哪个标签过来的分数最高
+            #     best_tag_id = argmax(next_tag_var)
+            #     # 将该索引添加到路径中
+            #     bptrs_t.append(best_tag_id)
+            #     # 将此分数保存下来
+            #     viterbivars_t.append(next_tag_var[0][best_tag_id].view(1))
+            # # 在这里加上当前时间步的发射概率，因为之前计算每个标签的最大分数来源与当前时间步发射概率无关
+            # forward_var = (torch.cat(viterbivars_t) + feat).view(1, -1)
+            # # 将当前时间步所有标签最大分数的来源索引保存
+            # backpointers.append(bptrs_t)
 
-            # 一个标签一个标签去计算处理
-            for next_tag in range(self.tagset_size):
-                # 前一时间步分数 + 转移到第 next_tag 个标签的概率
-                next_tag_var = forward_var + self.transitions[next_tag]
-                # 得到最大分数所对应的索引,即前一时间步哪个标签过来的分数最高
-                best_tag_id = argmax(next_tag_var)
-                # 将该索引添加到路径中
-                bptrs_t.append(best_tag_id)
-                # 将此分数保存下来
-                viterbivars_t.append(next_tag_var[0][best_tag_id].view(1))
-            # 在这里加上当前时间步的发射概率，因为之前计算每个标签的最大分数来源与当前时间步发射概率无关
-            forward_var = (torch.cat(viterbivars_t) + feat).view(1, -1)
-            # 将当前时间步所有标签最大分数的来源索引保存
+            forward_var = forward_var.repeat(feat.shape[0], 1)
+            next_tag_var = forward_var + self.transitions
+            bptrs_t = torch.max(next_tag_var, 1)[1].tolist()
+            viterbivars_t = next_tag_var[range(forward_var.shape[0]), bptrs_t]
+            forward_var = (viterbivars_t + feat).view(1, -1)
             backpointers.append(bptrs_t)
 
         # 手动加入转移到结束标签的概率
